@@ -1,103 +1,114 @@
-import httplib
 import logging
 import time
-from math import atan2,degrees
+
 import math
+from math import atan2,degrees
 
 import socketIO_client
 import random
 import pygame
 from pygame.locals import *
 from pygame.color import THECOLORS
+
 from functools import partial
 import datetime
 
-#logging.basicConfig()
-reconnect = True
-attack = True
+#logging.basicConfig(level=logging.DEBUG)    #ENABLE THIS AT YOUR OWN RISK!!! FLOODS THE CONSOLE WITH ALL TRANSMITTED/RECIEVED PACKETS!
 
-firstConnect = False
-projectiles = {}
-playerDat = {'d':0}
-pnbData = {}
-chatLog = []
-chatIdx = 0
-numMines = 0
-deadMines = 0
-ourID = 'd'
-ANGLES = []
-dist = 0
-angC = 0
-nearPlan = 0
-nearPlanDist = 0
-CORrection = 0
-ang = 0
-shipAng = 0
+reconnect = True  #Set to true to enable automatic reconnection after a disconnect
+attack = True     #stores wether the bot is enabled or not. This will set the default state when it first logs on
+updates = False
 
+firstConnect = False  #This is true if this is the first time connecting to the server
+projectiles = {}      #dict storing all data about projectiles
+playerDat = {'d':0}   #dict storing all data about players
+pnbData = {}          #dict storing planet data
+chatLog = []          #list that stores a log of all the chat events that have happened. 
+chatIdx = 0           #index pointer to the current location in the chat log
+numMines = 0          #number of mines on the current playing field
+deadMines = 0         #number of mines we have killed
+ourID = 'd'           #stores our UUID. Set to 'd' so it does not cause an index error the first time it is loaded
+ANGLES = []           #I more or less don't use this anymore, it stores the last five or so angles.
+dist = 0              #Distance from the current targer
+angC = 0              #the angle sent to the server, after any math is completed.
+nearPlan = 0          #the x,y position of the nearest planet to the bot.
+nearPlanDist = 0      #the distance the bot is away from the nearest planet
+ang = 0               #the angle that the ship needs to be at to fly straight at the target
+shipAng = 0           #the current angle of the ship, as reported by the server
 
+#messages printed to console on certain events. 
 eventMsgs = {'join':'JOINED!!!',
              'pnbcollision':'Tried to run over a planet. The planet won.',
              'disconnect':'LEFT!!!',
              'collision':'Person was run over!',
              'projectile':'Person was shot by a photon torpedo!'}
 
-#logging.basicConfig(level=logging.DEBUG)
-
+myMaster = None
 
 
 class ninjaClient:
-
+    """
+    Contains all the stuff needed for socketIO and a few random other things 
+    """
     class EventHandler(socketIO_client.BaseNamespace):
+        """
+        Handles events from socketIO
+        """
         def on_connect( self):
-            print "connected."
+            print "connected."  #When we connect to the server. Simply print a debug message to console
         
         def on_disconnect( self ):
-            print "DISCONNECTED!"          
-            if reconnect:
+            print "DISCONNECTED!" #When we get forcefully disconnected.          
+            if reconnect:         #if we want to reconnect, try it
                 client.Connect()
-        def on_pos(self,data):
-            global playerDat
-            for k in data.keys():
-                if playerDat.has_key(k): playerDat[k]['pos'].update(data[k])
-                else: playerDat[k]['pos'] = data[k]
-        def on_chat(self,data):
-            chatLog.append(data)
 
-        def on_shipstat(self,data):
-            global playerDat
+        def on_pos(self,data):   #wheb we recieve new information about player positions
+            global playerDat     #make sure the variable is global
+            for k in data.keys(): #iterate through all the keys in the rcieved data
+                if playerDat.has_key(k): playerDat[k]['pos'].update(data[k]) #if the player is already in the system, only overwrite the changes
+                else: playerDat[k]['pos'] = data[k] #otherwise, overwrite it all!
+
+        def on_chat(self,data): # when new data arrives from the chat system
+            chatLog.append(data)  #add that data to the que
+
+        def on_shipstat(self,data): #recieved info on ships
+            global playerDat #globalize all the things!
             
-            for k in data.keys():
+            for k in data.keys(): #iterate through keys in recv'd data
                 
-                if playerDat.has_key(k): playerDat[k].update(data[k])
-                else: playerDat[k] = data[k]
-                if data[k]['status'] == 'destroy':
+                if playerDat.has_key(k): playerDat[k].update(data[k]) #if the player is already in the system, only overwrite the changes
+                else: playerDat[k] = data[k]                          #otherwise, overwrite it all!
+                if data[k]['status'] == 'destroy':    #If the player needs tobe removed from memory
                     playerDat.pop(k)
 
-        def on_projstat(self,data):
-            for k in data.keys():
-                if data[k]['status'] == 'create':
-                    if projectiles.has_key(k): projectiles[k].update(data[k])
-                    else: projectiles[k] = data[k]
+        def on_projstat(self,data):  #updates on projectiles status
+            for k in data.keys():   
+                if data[k]['status'] == 'create': #if the projectile is being created
+                    if projectiles.has_key(k): projectiles[k].update(data[k]) #if the projectile is already in the system, only overwrite the changes 
+                    else: projectiles[k] = data[k]                            #otherwise, overwrite it all!
                 else:
-                    projectiles.pop(k)
-        def on_projpos(self,data):
-            for k in data.keys():
-                projectiles[k].update(data[k])
+                    projectiles.pop(k)            #If we're not creating it, destroy it!
 
-            pass
+        def on_projpos(self,data):  #on position update of projectiles
+            for k in data.keys():   #write new data to the dict
+                projectiles[k].update(data[k]) 
 
-        def on_pnbitsstat(self,data):
-            global pnbData
-            pnbData = data
+
+        def on_pnbitsstat(self,data):  #This is only called once, on login, it gives data on PNBITS
+            global pnbData 
+            pnbData = data             #just copy the data into a global variable
     
     def getClosest(self,coord,projectiles):
+        """
+        returns closest coordinate to a coordinate (coord) from the list of coordinates (projectiles)
+        """
         dist=lambda s,d: (s[0]-d[0])**2+(s[1]-d[1])**2 #a little function which calculates the distance between two coordinates
-        pos = []
+        pos = []   #clear the local list of positions
         for k in projectiles.keys():
-            if projectiles[k].has_key('cssClass'):
-                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50)))
-            elif projectiles[k]['weaponID'] == 1:
-                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50)))
+            if projectiles[k].has_key('cssClass'):  #if this is a planet
+                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
+            elif projectiles[k]['weaponID'] == 1:   #or if this is a mine
+                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
         try:
             return min(pos, key=partial(dist, coord))
         except ValueError:
@@ -186,20 +197,33 @@ while True:
             if '!info' in cht['msg'].lower():
                 client.ChatSend('I am a bot written by Roger (theSteamRoller). My one goal is to obliterate the mines placed by the oppressors.')
             elif '!setcontroltome' in cht['msg'].lower():
-                client.ChatSend('Control set to '+client.GetName(cht['id']))
-            elif '!enable' in cht['msg'].lower()and 'Steam' in client.GetName(cht['id']):
+                if myMaster == None:
+
+                    client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
+                    myMaster = cht['id']
+                
+            elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
                 attack = True
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
 
-            elif '!disable' in cht['msg'].lower()and 'Steam' in client.GetName(cht['id']):
-                attack = False
-                client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
-            elif '!toggle' in cht['msg'].lower() and 'Steam' in client.GetName(cht['id']):
-                attack = not attack
+            elif '!disable' in cht['msg'].lower()and myMaster == cht['id']:
+                #attack = False
+                #client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
+                attack = True
+                client.ChatSend('Theres no disabling me!')
+
+            elif '!toggle' in cht['msg'].lower() and myMaster == cht['id']:
+                #attack = not attack
                 if attack:
                     client.ChatSend('Phasers set to Kill! Mines, watch out!')
                 else:
                     client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
+            elif '!updates' in cht['msg'].lower() :
+                updates = not updates
+                if attack:
+                    client.ChatSend('I shall now spam this clean chat log with useless messages!')
+                else:
+                    client.ChatSend('You are now free of my spam!')
 
         else:
             print cht
@@ -213,10 +237,6 @@ while True:
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
             else:
                 client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
-        elif event.key == 273:
-            CORrection += 1
-        elif event.key == 274:
-            CORrection -= 1
         else:
             print event.key
 
@@ -252,8 +272,7 @@ while True:
                     if attack:
                         client.MoveDegrees(angC,0)
                         client.MoveDegrees(angC,1)
-                        if dist < 10:
-                            
+                        if dist < 10:                           
                             client.Fire()
  
                         
@@ -281,7 +300,9 @@ while True:
         deadMines += 1
         #client.ChatSend(str(datetime.datetime.now())+' | Killed: '+str(deadMines))
         #client.ChatSend(str(numMines)+' Left!')
-        #client.ChatSend('1 mine down! {0} left to go. This makes a total of {1} mines disarmed!'.format(numMines,deadMines))
+
+        if updates:
+            client.ChatSend('1 mine down! {0} left to go. This makes a total of {1} mines disarmed! {2}'.format(numMines,deadMines,datetime.datetime.now()))
 
     window.fill(THECOLORS['white'])
     window.blit(screen, (5,5))
@@ -290,10 +311,9 @@ while True:
     window.blit(font.render('Distance to target:'+str(dist),1,THECOLORS['black']),(420,85))
     window.blit(font.render('target Angle:'+str(ang),1,THECOLORS['black']),(420,105))
     window.blit(font.render('Dist to nearest planet:'+str(nearPlanDist),1,THECOLORS['black']),(420,125))
-    window.blit(font.render('real angle  :'+str(ang-shipAng),1,THECOLORS['black']),(420,145))
-    window.blit(font.render('correction:'+str(CORrection),1,THECOLORS['black']),(420,165))
+    window.blit(font.render('Dif of cur ang and target ang:'+str(ang-shipAng),1,THECOLORS['black']),(420,145))
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
-    window.blit(font.render('FPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
+    window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
     
     pygame.display.update()
