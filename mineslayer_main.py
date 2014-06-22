@@ -46,7 +46,6 @@ eventMsgs = {'join':'JOINED!!!',
 
 
 
-
 class ninjaClient:
     """
     Contains all the stuff needed for socketIO and a few random other things 
@@ -125,7 +124,7 @@ class ninjaClient:
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
-                         'name':"TheMineUNcrafter.py",
+                         'name':"I_HATE_MINES.py",
                          'style':"f"}
     def Connect(self):
         global firstConnect

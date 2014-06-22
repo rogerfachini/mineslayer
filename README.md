@@ -6,6 +6,7 @@ pygame (for GUI and stuff) (http://www.pygame.org/download.shtml)
 
 socketIO-client (JS socket.IO protocol) (https://pypi.python.org/pypi/socketIO-client)
 	Note: https://pypi.python.org/pypi/setuptools might help!
+		oh, and this! http://pip.readthedocs.org/en/latest/installing.html
 
 ----------------------------------------------------------------------------------------------------
 About:
