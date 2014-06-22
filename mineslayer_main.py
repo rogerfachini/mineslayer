@@ -17,7 +17,7 @@ import datetime
 
 reconnect = True  #Set to true to enable automatic reconnection after a disconnect
 attack = True     #stores wether the bot is enabled or not. This will set the default state when it first logs on
-updates = False
+updates = False   #if this is true, then we say statistics ingame
 
 firstConnect = False  #This is true if this is the first time connecting to the server
 projectiles = {}      #dict storing all data about projectiles
@@ -35,6 +35,7 @@ nearPlan = 0          #the x,y position of the nearest planet to the bot.
 nearPlanDist = 0      #the distance the bot is away from the nearest planet
 ang = 0               #the angle that the ship needs to be at to fly straight at the target
 shipAng = 0           #the current angle of the ship, as reported by the server
+myMaster = None       #Stores the UUID of the person with OP permissions for commands
 
 #messages printed to console on certain events. 
 eventMsgs = {'join':'JOINED!!!',
@@ -43,7 +44,7 @@ eventMsgs = {'join':'JOINED!!!',
              'collision':'Person was run over!',
              'projectile':'Person was shot by a photon torpedo!'}
 
-myMaster = None
+
 
 
 class ninjaClient:
@@ -207,24 +208,36 @@ while True:
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
 
             elif '!disable' in cht['msg'].lower()and myMaster == cht['id']:
-                #attack = False
-                #client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
-                attack = True
-                client.ChatSend('Theres no disabling me!')
+                attack = False
+                client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
+                #attack = True
+                #client.ChatSend('Theres no disabling me!')
 
             elif '!toggle' in cht['msg'].lower() and myMaster == cht['id']:
-                #attack = not attack
+                attack = not attack
                 if attack:
                     client.ChatSend('Phasers set to Kill! Mines, watch out!')
                 else:
                     client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
+
             elif '!updates' in cht['msg'].lower() :
                 updates = not updates
-                if attack:
+                if updates:
                     client.ChatSend('I shall now spam this clean chat log with useless messages!')
                 else:
                     client.ChatSend('You are now free of my spam!')
 
+            elif '!stats' in cht['msg'].lower():
+
+                client.ChatSend('Disarmed {0} mines out of {1} remaining mines. \
+                                 Current TPS is {2}. My UUID is: {3}.  \
+                                 My current owner is: {4} ({5})' .format(deadMines,
+                                                                         numMines,
+                                                                         clock.get_fps(),
+                                                                         ourID,
+                                                                         myMaster,
+                                                                         client.GetName(myMaster)
+                                                                         ))
         else:
             print cht
         chatIdx += 1

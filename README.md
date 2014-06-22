@@ -5,6 +5,7 @@ python 2.7 (https://www.python.org/download/releases/2.7.7/)
 pygame (for GUI and stuff) (http://www.pygame.org/download.shtml)
 
 socketIO-client (JS socket.IO protocol) (https://pypi.python.org/pypi/socketIO-client)
+	Note: https://pypi.python.org/pypi/setuptools might help!
 
 ----------------------------------------------------------------------------------------------------
 About:
