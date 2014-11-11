@@ -19,7 +19,7 @@ import datetime
 
 reconnect = True  #Set to true to enable automatic reconnection after a disconnect
 attack = True     #stores wether the bot is enabled or not. This will set the default state when it first logs on
-updates = True   #if this is true, then we say statistics ingame
+updates = False   #if this is true, then we say statistics ingame
 
 firstConnect = False  #This is true if this is the first time connecting to the server
 projectiles = {}      #dict storing all data about projectiles
@@ -41,9 +41,7 @@ myMaster = None       #Stores the UUID of the person with OP permissions for com
 velocity = {'x':0, 
             'y':0,
             'd':0,
-            'l':0}
-newPos = (0,0)
-closePos = newPos
+            't':0}
 
 #messages printed to console on certain events. 
 eventMsgs = {'join':'JOINED!!!',
@@ -52,9 +50,9 @@ eventMsgs = {'join':'JOINED!!!',
              'collision':'Person was run over!',
              'projectile':'Person was shot by a photon torpedo!'}
 
-targetPlayer = True
-playerToTarget = 'docprofsky'
-silentStart = False
+targetPlayer = False
+playerToTarget = 'MakerBlock'
+silentStart = True
 
 class ninjaClient:
     """
@@ -133,18 +131,18 @@ class ninjaClient:
             return ''
     def GetKey(self,name):
         try:
-            for k in playerDat.keys(): 
-                if playerDat[k]['name'] == name:
+            for k in data.keys(): 
+                if playerDat[key]['name'] == name:
                     return k
-        except BaseException as er:
+        except:
             return ''
 
     def __init__(self):
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
-                         'name':"theMineUNcrafter.py",
-                         'style':"c"}
+                         'name':"Now With Velocity calculations!.py",
+                         'style':"f"}
     def Connect(self):
         global firstConnect
         self.sio.emit('shipstat',self.ShipInfo)
@@ -188,21 +186,15 @@ def GetAngle(p1, p2):
     yDiff= p2[1]-p1[1]
     return degrees(atan2(yDiff,xDiff))
 
-def GetNextPos(angle, posX,posY,velX,velY,length,sec=1):
-    global closePos, Estang
-    velX = int(-velX/(50/6))
-    velY = int(-velY/(50/6))
-    len = int(length/(50))
-    X = posX+velY
-    Y = posY+velX
-    
+def GetNextPos(angle, posX,posY,velX,velY,sec=1):
+    X = posX+velX
+    Y = posY+velY
     return (X,Y)
 
 client = ninjaClient()
 client.Connect()
-
 if not silentStart:
-    client.ChatSend('I am a bot written by Roger . My one goal is to obliterate the mines placed by the oppressors. ')
+    client.ChatSend('I am a bot written by Roger (theSteamRoller). My one goal is to obliterate the mines placed by the oppressors. ')
 
 pygame.init()
 window = pygame.display.set_mode((800,500))
@@ -214,8 +206,6 @@ clock = pygame.time.Clock()
 while True:
     client.sio.wait(0.001)
     clock.tick(0)
-
-    client.Fire()
     if len(chatLog) > chatIdx:
         cht = chatLog[chatIdx]
         if cht['type'] == 'system':
@@ -225,11 +215,10 @@ while True:
                 playerDat.pop(ourID)
                 ourID = cht['id']
                 firstConnect = False
-
         elif cht['type'] == 'chat':
             print client.GetName(cht['id']),'SAYS:',cht['msg']
             if '!info' in cht['msg'].lower():
-                client.ChatSend('I am a bot written by Roger . My one goal is to obliterate the mines placed by the oppressors.')
+                client.ChatSend('I am a bot written by Roger (theSteamRoller). My one goal is to obliterate the mines placed by the oppressors.')
             elif '!setcontroltome' in cht['msg'].lower():
                 if myMaster == None:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
@@ -251,13 +240,6 @@ while True:
                     client.ChatSend('Phasers set to Kill! Mines, watch out!')
                 else:
                     client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
-
-            elif '!kill' in cht['msg'].lower() and myMaster == cht['id']:
-                targetPlayer = not targetPlayer
-                if targetPlayer:
-                    client.ChatSend('Now Targeting: '+playerToTarget)
-                else:
-                    client.ChatSend('Player Targeting Disabled!')
 
             elif '!updates' in cht['msg'].lower() :
                 updates = not updates
@@ -298,54 +280,52 @@ while True:
             if not playerDat[k]['status'] == 'boom':
                 pos = (200-int(playerDat[k]['pos']['x']/50),200-int(playerDat[k]['pos']['y']/50))
                 pygame.draw.circle(screen,THECOLORS[playerDat[k]['shieldStyle']],pos,4)
-                
+                velocity = playerDat[ourID]['pos']['vel']
+                newPos = GetNextPos(int(velocity['t']),
+                                    int(playerDat[k]['pos']['x']),
+                                    int(playerDat[k]['pos']['y']),
+                                    int(velocity['x']),
+                                    int(velocity['y']))
+                newPos = (200-int(newPos[0]/50),200-int(newPos[1]/50))
+                pygame.draw.line(screen,THECOLORS['red'],pos,newPos)
 
                 if k == ourID:
                     if targetPlayer:
                         tID = client.GetKey(playerToTarget)
-                        #print 'TID', tID
                         closePos = (200-int(playerDat[tID]['pos']['x']/50),200-int(playerDat[tID]['pos']['y']/50)) 
                     else:
                         closePos = client.getClosest(pos,projectiles)
                     shipAng = playerDat[k]['pos']['d']
                     ang = int(GetAngle(pos,closePos)) -90
 
-                    velocity = playerDat[ourID]['pos']['vel']
-                    newPos = GetNextPos(int(velocity['t']),
-                                    pos[0],
-                                    pos[1],
-                                    int(velocity['x']),
-                                    int(velocity['y']),
-                                    int(velocity['l']))
-
+                    
                     if ang < 0: ang += 360
-                    Newang = GetAngle(newPos,closePos)+ 90
-                    if Newang < 0: Newang += 360
+                    ANGLES.append(ang)
 
-                    angC = int(Newang)
+                    if len(ANGLES) > 5:
+                        ANGLES.pop(0)
+                    angC = ANGLES[-1] 
 
                     nearPlan = client.getClosest(pos,pnbData)
                     nearPlanDist = int(math.hypot(pos[0]-nearPlan[0], pos[1]-nearPlan[1]))
 
-                    #print angC
+
                     if attack:
                         pygame.draw.line(screen,THECOLORS['grey'],pos,closePos)
-
-                    pygame.draw.line(screen,THECOLORS['red'],newPos,closePos)
 
                     dist = int(math.hypot(pos[0]-closePos[0], pos[1]-closePos[1]))
 
                     if attack:
-                        client.MoveDegrees(angC+180,0)
-                        client.MoveDegrees(angC+180,1)
+                        client.MoveDegrees(angC,0)
+                        client.MoveDegrees(angC,1)
                         if dist < 10:                           
                             client.Fire()
-                            GetAngle(pos,newPos)
  
                         
 
 
-    except BaseException as e:      
+    except BaseException as e:
+        
         print e    
     for k in pnbData.keys():
         
@@ -378,7 +358,7 @@ while True:
     window.blit(font.render('target Angle:'+str(ang),1,THECOLORS['black']),(420,105))
     window.blit(font.render('Dist to nearest planet:'+str(nearPlanDist),1,THECOLORS['black']),(420,125))
     window.blit(font.render('Dif of cur ang and target ang:'+str(ang-shipAng),1,THECOLORS['black']),(420,145))
-    window.blit(font.render('Future angle:'+str(int(GetAngle(pos,newPos))),1,THECOLORS['black']),(420,165))
+    window.blit(font.render('Velocity:'+str(int(velocity['t'])),1,THECOLORS['black']),(420,165))
     window.blit(font.render('Velocity X:'+str(int(velocity['x'])),1,THECOLORS['black']),(420,185))
     window.blit(font.render('Velocity Y:'+str(int(velocity['y'])),1,THECOLORS['black']),(420,205))
 
