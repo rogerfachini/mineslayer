@@ -54,7 +54,7 @@ eventMsgs = {'join':'JOINED!!!',
 
 targetPlayer = True
 playerToTarget = 'docprofsky'
-silentStart = False
+silentStart = True
 
 class ninjaClient:
     """
@@ -143,7 +143,7 @@ class ninjaClient:
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
-                         'name':"theMineUNcrafter.py",
+                         'name':"I am NOT a bot",
                          'style':"c"}
     def Connect(self):
         global firstConnect
@@ -230,11 +230,13 @@ while True:
             print client.GetName(cht['id']),'SAYS:',cht['msg']
             if '!info' in cht['msg'].lower():
                 client.ChatSend('I am a bot written by Roger . My one goal is to obliterate the mines placed by the oppressors.')
+
             elif '!setcontroltome' in cht['msg'].lower():
                 if myMaster == None:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
                     myMaster = cht['id']
-                
+                else:
+                    client.ChatSend('Who are you to try and control ME!')
             elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
                 attack = True
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
@@ -295,6 +297,9 @@ while True:
                 client.ChatSend('Phasers set to Stun! Consider yourself lucky, mines!')
         else:
             print event.key
+    elif event.type == QUIT:
+        pygame.quit()
+        exit()
 
     screen.fill((30,30,30))
     try:
