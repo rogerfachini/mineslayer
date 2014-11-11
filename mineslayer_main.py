@@ -25,7 +25,7 @@ firstConnect = False  #This is true if this is the first time connecting to the 
 projectiles = {}      #dict storing all data about projectiles
 playerDat = {'d':0}   #dict storing all data about players
 pnbData = {}          #dict storing planet data
-chatLog = []          #list that stores a log of all the chat events that have happened. 
+chatLog = []          #list that stores a log of all the chat events that have happened.
 chatIdx = 0           #index pointer to the current location in the chat log
 numMines = 0          #number of mines on the current playing field
 deadMines = 0         #number of mines we have killed
@@ -38,14 +38,14 @@ nearPlanDist = 0      #the distance the bot is away from the nearest planet
 ang = 0               #the angle that the ship needs to be at to fly straight at the target
 shipAng = 0           #the current angle of the ship, as reported by the server
 myMaster = None       #Stores the UUID of the person with OP permissions for commands
-velocity = {'x':0, 
+velocity = {'x':0,
             'y':0,
             'd':0,
             'l':0}
 newPos = (0,0)
 closePos = newPos
 
-#messages printed to console on certain events. 
+#messages printed to console on certain events.
 eventMsgs = {'join':'JOINED!!!',
              'pnbcollision':'Tried to run over a planet. The planet won.',
              'disconnect':'LEFT!!!',
@@ -53,12 +53,12 @@ eventMsgs = {'join':'JOINED!!!',
              'projectile':'Person was shot by a photon torpedo!'}
 
 targetPlayer = True
-playerToTarget = 'docprofsky'
+playerToTarget = 'RogerFachini'
 silentStart = False
 
 class ninjaClient:
     """
-    Contains all the stuff needed for socketIO and a few random other things 
+    Contains all the stuff needed for socketIO and a few random other things
     """
     class EventHandler(socketIO_client.BaseNamespace):
         """
@@ -66,10 +66,10 @@ class ninjaClient:
         """
         def on_connect( self):
             print "connected."  #When we connect to the server. Simply print a debug message to console
-        
+
         def on_disconnect( self ):
             global myMaster
-            print "DISCONNECTED!" #When we get forcefully disconnected.  
+            print "DISCONNECTED!" #When we get forcefully disconnected.
             if reconnect:         #if we want to reconnect, try it
                 client.Connect()
 
@@ -85,31 +85,31 @@ class ninjaClient:
 
         def on_shipstat(self,data): #recieved info on ships
             global playerDat #globalize all the things!
-            
+
             for k in data.keys(): #iterate through keys in recv'd data
-                
+
                 if playerDat.has_key(k): playerDat[k].update(data[k]) #if the player is already in the system, only overwrite the changes
                 else: playerDat[k] = data[k]                          #otherwise, overwrite it all!
                 if data[k]['status'] == 'destroy':    #If the player needs tobe removed from memory
                     playerDat.pop(k)
 
         def on_projstat(self,data):  #updates on projectiles status
-            for k in data.keys():   
+            for k in data.keys():
                 if data[k]['status'] == 'create': #if the projectile is being created
-                    if projectiles.has_key(k): projectiles[k].update(data[k]) #if the projectile is already in the system, only overwrite the changes 
+                    if projectiles.has_key(k): projectiles[k].update(data[k]) #if the projectile is already in the system, only overwrite the changes
                     else: projectiles[k] = data[k]                            #otherwise, overwrite it all!
                 else:
                     projectiles.pop(k)            #If we're not creating it, destroy it!
 
         def on_projpos(self,data):  #on position update of projectiles
             for k in data.keys():   #write new data to the dict
-                projectiles[k].update(data[k]) 
+                projectiles[k].update(data[k])
 
 
         def on_pnbitsstat(self,data):  #This is only called once, on login, it gives data on PNBITS
-            global pnbData 
+            global pnbData
             pnbData = data             #just copy the data into a global variable
-    
+
     def getClosest(self,coord,projectiles):
         """
         returns closest coordinate to a coordinate (coord) from the list of coordinates (projectiles)
@@ -133,7 +133,7 @@ class ninjaClient:
             return ''
     def GetKey(self,name):
         try:
-            for k in playerDat.keys(): 
+            for k in playerDat.keys():
                 if playerDat[k]['name'] == name:
                     return k
         except BaseException as er:
@@ -143,7 +143,7 @@ class ninjaClient:
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
-                         'name':"theMineUNcrafter.py",
+                         'name':"docprofsky",
                          'style':"c"}
     def Connect(self):
         global firstConnect
@@ -195,7 +195,7 @@ def GetNextPos(angle, posX,posY,velX,velY,length,sec=1):
     len = int(length/(50))
     X = posX+velY
     Y = posY+velX
-    
+
     return (X,Y)
 
 client = ninjaClient()
@@ -234,7 +234,7 @@ while True:
                 if myMaster == None:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
                     myMaster = cht['id']
-                
+
             elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
                 attack = True
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
@@ -284,7 +284,7 @@ while True:
         else:
             print cht
         chatIdx += 1
-    
+
     event = pygame.event.poll()
     if event.type == KEYDOWN:
         if event.key == 107:
@@ -302,13 +302,13 @@ while True:
             if not playerDat[k]['status'] == 'boom':
                 pos = (200-int(playerDat[k]['pos']['x']/50),200-int(playerDat[k]['pos']['y']/50))
                 pygame.draw.circle(screen,THECOLORS[playerDat[k]['shieldStyle']],pos,4)
-                
+
 
                 if k == ourID:
                     if targetPlayer:
                         tID = client.GetKey(playerToTarget)
                         #print 'TID', tID
-                        closePos = (200-int(playerDat[tID]['pos']['x']/50),200-int(playerDat[tID]['pos']['y']/50)) 
+                        closePos = (200-int(playerDat[tID]['pos']['x']/50),200-int(playerDat[tID]['pos']['y']/50))
                     else:
                         closePos = client.getClosest(pos,projectiles)
                     shipAng = playerDat[k]['pos']['d']
@@ -342,19 +342,19 @@ while True:
                     if attack:
                         client.MoveDegrees(angC+180,0)
                         client.MoveDegrees(angC+180,1)
-                        if dist < 10:                           
+                        if dist < 10:
                             client.Fire()
                             GetAngle(pos,newPos)
- 
-                        
 
 
-    except BaseException as e:      
-        print e    
+
+
+    except BaseException as e:
+        print e
     for k in pnbData.keys():
-        
+
         pos = (200-int(pnbData[k]['pos']['x']/50),200-int(pnbData[k]['pos']['y']/50))
-        
+
         pygame.draw.circle(screen,THECOLORS['orange'],pos,pnbData[k]['radius']/50)
 
     o_numMines = numMines
@@ -388,5 +388,5 @@ while True:
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
-    
+
     pygame.display.update()
