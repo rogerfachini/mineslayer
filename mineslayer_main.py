@@ -259,6 +259,10 @@ while True:
                 else:
                     client.ChatSend('Player Targeting Disabled!')
 
+            elif '!newtarget' in cht['msg'].lower() and myMaster == cht['id']:
+                playerToTarget = cht['msg'].replace('!newtarget','').strip()
+                client.ChatSend('Now Targeting: '+playerToTarget)
+
             elif '!updates' in cht['msg'].lower() :
                 updates = not updates
                 if updates:
