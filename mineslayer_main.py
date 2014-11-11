@@ -235,8 +235,6 @@ while True:
                 if myMaster == None:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
                     myMaster = cht['id']
-                else:
-                    client.ChatSend('Who are you to try and control ME!')
             elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
                 attack = True
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
@@ -378,7 +376,7 @@ while True:
 
         if updates:
             client.ChatSend('1 mine down! {0} left to go. This makes a total of {1} mines disarmed! {2}'.format(numMines,deadMines,datetime.datetime.now()))
-
+    
     window.fill(THECOLORS['white'])
     window.blit(screen, (5,5))
     window.blit(font.render('# of mines disarmed:'+str(deadMines),1,THECOLORS['black']),(420,5))
@@ -393,5 +391,8 @@ while True:
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
-    
+    try:
+        pygame.display.set_caption("T: %s M: %s"%(playerToTarget,playerDat[ourID]['name']))
+    except:
+        pass
     pygame.display.update()
