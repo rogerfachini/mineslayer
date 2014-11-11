@@ -4,6 +4,7 @@ sys.path.append('C:\Python27\Lib\site-packages')
 import logging
 import time
 import math
+import sys
 from math import atan2,degrees
 
 import socketIO_client
@@ -139,11 +140,11 @@ class ninjaClient:
         except BaseException as er:
             return ''
 
-    def __init__(self):
+    def __init__(self, name="docprofsky - BOT OF DOOM"):
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
-                         'name':"docprofsky",
+                         'name': name,
                          'style':"c"}
     def Connect(self):
         global firstConnect
@@ -198,7 +199,8 @@ def GetNextPos(angle, posX,posY,velX,velY,length,sec=1):
 
     return (X,Y)
 
-client = ninjaClient()
+client = ninjaClient(sys.argv[1])
+playerToTarget = sys.argv[2]
 client.Connect()
 
 if not silentStart:
