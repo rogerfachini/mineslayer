@@ -55,7 +55,7 @@ eventMsgs = {'join':'JOINED!!!',
 
 targetPlayer = True
 playerToTarget = 'RogerFachini'
-silentStart = False
+silentStart = True
 
 class ninjaClient:
     """
