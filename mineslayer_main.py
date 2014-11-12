@@ -37,7 +37,7 @@ nearPlan = 0          #the x,y position of the nearest planet to the bot.
 nearPlanDist = 0      #the distance the bot is away from the nearest planet
 ang = 0               #the angle that the ship needs to be at to fly straight at the target
 shipAng = 0           #the current angle of the ship, as reported by the server
-myMaster = None       #Stores the UUID of the person with OP permissions for commands
+myMaster = ''       #Stores the UUID of the person with OP permissions for commands
 velocity = {'x':0,
             'y':0,
             'd':0,
@@ -239,7 +239,7 @@ while True:
                 client.ChatSend('I am a bot written by Roger . My one goal is to obliterate the mines placed by the oppressors.')
 
             elif '!setcontroltome' in cht['msg'].lower():
-                if myMaster == None:
+                if len(myMaster) == 0:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
                     myMaster = cht['id']
             elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
@@ -383,7 +383,7 @@ while True:
 
         if updates:
             client.ChatSend('1 mine down! {0} left to go. This makes a total of {1} mines disarmed! {2}'.format(numMines,deadMines,datetime.datetime.now()))
-    
+
     window.fill(THECOLORS['white'])
     window.blit(screen, (5,5))
     window.blit(font.render('# of mines disarmed:'+str(deadMines),1,THECOLORS['black']),(420,5))
@@ -399,8 +399,7 @@ while True:
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
     try:
-        pygame.display.set_caption("T: %s M: %s"%(playerToTarget,playerDat[ourID]['name']))
+        pygame.display.set_caption("T: %s M: %s C: %s"%(playerToTarget,playerDat[ourID]['name'],client.GetName(myMaster)))
     except:
         pass
     pygame.display.update()
-
