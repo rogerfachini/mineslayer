@@ -4,7 +4,6 @@ sys.path.append('C:\Python27\Lib\site-packages')
 import logging
 import time
 import math
-import sys
 from math import atan2,degrees
 
 import socketIO_client
@@ -54,7 +53,7 @@ eventMsgs = {'join':'JOINED!!!',
              'projectile':'Person was shot by a photon torpedo!'}
 
 targetPlayer = True
-playerToTarget = 'RogerFachini'
+playerToTarget = 'docprofsky'
 silentStart = True
 
 class ninjaClient:
@@ -242,7 +241,7 @@ while True:
             elif '!setcontroltome' in cht['msg'].lower():
                 if myMaster == None:
                     client.ChatSend('Control set to {0} ({1})! We shall forever be in your service!'.format(client.GetName(cht['id']),cht['id']))
-                    myMaster = cht['id'
+                    myMaster = cht['id']
             elif '!enable' in cht['msg'].lower()and myMaster == cht['id']:
                 attack = True
                 client.ChatSend('Phasers set to Kill! Mines, watch out!')
@@ -399,13 +398,9 @@ while True:
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
-<<<<<<< HEAD
     try:
         pygame.display.set_caption("T: %s M: %s"%(playerToTarget,playerDat[ourID]['name']))
     except:
         pass
     pygame.display.update()
-=======
 
-    pygame.display.update()
->>>>>>> origin/master
