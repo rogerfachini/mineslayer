@@ -53,7 +53,7 @@ eventMsgs = {'join':'JOINED!!!',
              'projectile':'Person was shot by a photon torpedo!'}
 
 targetPlayer = True
-playerToTarget = 'docprofsky'
+playerToTarget = 'Sporty Stormer'
 silentStart = True
 
 class ninjaClient:
@@ -139,12 +139,12 @@ class ninjaClient:
         except BaseException as er:
             return ''
 
-    def __init__(self, name="docprofsky - BOT OF DOOM"):
+    def __init__(self, name="docprofsky"):
         self.sio = socketIO_client.SocketIO('ninjanode.tn42.com',80, self.EventHandler)
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
                          'name': name,
-                         'style':"c"}
+                         'style':"b"}
     def Connect(self):
         global firstConnect
         self.sio.emit('shipstat',self.ShipInfo)
@@ -204,7 +204,7 @@ if len(sys.argv) == 3:
 elif len(sys.argv) == 2:
     client = ninjaClient(sys.argv[1])
 else:
-    client = ninjaClient('BOt - Roger2.0')
+    client = ninjaClient('!docprofsky')
 
 client.Connect()
 
@@ -217,7 +217,7 @@ screen = pygame.surface.Surface((400,400))
 font = pygame.font.SysFont('console',18)
 clock = pygame.time.Clock()
 
-
+fonts = pygame.font.SysFont('console',8,True)
 while True:
     client.sio.wait(0.001)
     clock.tick(0)
@@ -312,7 +312,7 @@ while True:
             if not playerDat[k]['status'] == 'boom':
                 pos = (200-int(playerDat[k]['pos']['x']/50),200-int(playerDat[k]['pos']['y']/50))
                 pygame.draw.circle(screen,THECOLORS[playerDat[k]['shieldStyle']],pos,4)
-
+                screen.blit(fonts.render(playerDat[k]['name'],1,(255,255,255)),(pos[0]+5,pos[1]-5))
 
                 if k == ourID:
                     if targetPlayer:
@@ -398,6 +398,7 @@ while True:
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
+    client.DropMine()
     try:
         pygame.display.set_caption("T: %s M: %s C: %s"%(playerToTarget,playerDat[ourID]['name'],client.GetName(myMaster)))
     except:
