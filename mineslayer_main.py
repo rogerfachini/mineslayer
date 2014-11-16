@@ -53,7 +53,7 @@ eventMsgs = {'join':'JOINED!!!',
              'projectile':'Person was shot by a photon torpedo!'}
 
 targetPlayer = True
-playerToTarget = 'Sporty Stormer'
+playerToTarget = 'docprofsky'
 silentStart = True
 
 class ninjaClient:
@@ -118,9 +118,9 @@ class ninjaClient:
         pos = []   #clear the local list of positions
         for k in projectiles.keys():
             if projectiles[k].has_key('cssClass'):  #if this is a planet
-                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
+                pos.append((200-int(-projectiles[k]['pos']['x']/50),200-int(-projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
             elif projectiles[k]['weaponID'] == 1:   #or if this is a mine
-                pos.append((200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
+                pos.append((200-int(-projectiles[k]['pos']['x']/50),200-int(-projectiles[k]['pos']['y']/50))) #add the coordinates in a (0,0) fashion
         try:
             return min(pos, key=partial(dist, coord))
         except ValueError:
@@ -144,7 +144,7 @@ class ninjaClient:
         self.sio.timeout_in_seconds = 0.001
         self.ShipInfo = {'status':"create",
                          'name': name,
-                         'style':"b"}
+                         'style':"c"}
     def Connect(self):
         global firstConnect
         self.sio.emit('shipstat',self.ShipInfo)
@@ -223,6 +223,7 @@ while True:
     clock.tick(0)
 
     client.Fire()
+    client.DropMine()
     if len(chatLog) > chatIdx:
         cht = chatLog[chatIdx]
         if cht['type'] == 'system':
@@ -310,7 +311,7 @@ while True:
     try:
         for k in playerDat.keys():
             if not playerDat[k]['status'] == 'boom':
-                pos = (200-int(playerDat[k]['pos']['x']/50),200-int(playerDat[k]['pos']['y']/50))
+                pos = (200-int(-playerDat[k]['pos']['x']/50),200-int(-playerDat[k]['pos']['y']/50))
                 pygame.draw.circle(screen,THECOLORS[playerDat[k]['shieldStyle']],pos,4)
                 screen.blit(fonts.render(playerDat[k]['name'],1,(255,255,255)),(pos[0]+5,pos[1]-5))
 
@@ -318,20 +319,24 @@ while True:
                     if targetPlayer:
                         tID = client.GetKey(playerToTarget)
                         #print 'TID', tID
-                        closePos = (200-int(playerDat[tID]['pos']['x']/50),200-int(playerDat[tID]['pos']['y']/50))
+                        closePos = (200-int(-playerDat[tID]['pos']['x']/50),200-int(-playerDat[tID]['pos']['y']/50))
                     else:
                         closePos = client.getClosest(pos,projectiles)
                     shipAng = playerDat[k]['pos']['d']
                     ang = int(GetAngle(pos,closePos)) -90
-
+                    
                     velocity = playerDat[ourID]['pos']['vel']
+                    velocity = {'x':-velocity['x'],
+                                'y':-velocity['y'],
+                                'l':-velocity['l'],
+                                't':-velocity['t']}
                     newPos = GetNextPos(int(velocity['t']),
                                     pos[0],
                                     pos[1],
                                     int(velocity['x']),
                                     int(velocity['y']),
                                     int(velocity['l']))
-
+                    ang = ang - int(GetAngle(pos,newPos))
                     if ang < 0: ang += 360
                     Newang = GetAngle(newPos,closePos)+ 90
                     if Newang < 0: Newang += 360
@@ -341,7 +346,7 @@ while True:
                     nearPlan = client.getClosest(pos,pnbData)
                     nearPlanDist = int(math.hypot(pos[0]-nearPlan[0], pos[1]-nearPlan[1]))
 
-                    #print angC
+                    print angC
                     if attack:
                         pygame.draw.line(screen,THECOLORS['grey'],pos,closePos)
 
@@ -350,8 +355,8 @@ while True:
                     dist = int(math.hypot(pos[0]-closePos[0], pos[1]-closePos[1]))
 
                     if attack:
-                        client.MoveDegrees(angC+180,0)
-                        client.MoveDegrees(angC+180,1)
+                        client.MoveDegrees(angC,0)
+                        client.MoveDegrees(angC,1)
                         if dist < 10:
                             client.Fire()
                             GetAngle(pos,newPos)
@@ -363,7 +368,7 @@ while True:
         print e
     for k in pnbData.keys():
 
-        pos = (200-int(pnbData[k]['pos']['x']/50),200-int(pnbData[k]['pos']['y']/50))
+        pos = (200-int(-pnbData[k]['pos']['x']/50),200-int(-pnbData[k]['pos']['y']/50))
 
         pygame.draw.circle(screen,THECOLORS['orange'],pos,pnbData[k]['radius']/50)
 
@@ -373,7 +378,7 @@ while True:
     for k in projectiles.keys():
         if projectiles[k]['weaponID'] == 1:
             numMines += 1
-            pos = (200-int(projectiles[k]['pos']['x']/50),200-int(projectiles[k]['pos']['y']/50))
+            pos = (200-int(-projectiles[k]['pos']['x']/50),200-int(-projectiles[k]['pos']['y']/50))
             pygame.draw.circle(screen,THECOLORS[projectiles[k]['style']],pos,4, 1)
 
     if not o_numMines == numMines and o_numMines-1 == numMines:
@@ -385,11 +390,12 @@ while True:
             client.ChatSend('1 mine down! {0} left to go. This makes a total of {1} mines disarmed! {2}'.format(numMines,deadMines,datetime.datetime.now()))
 
     window.fill(THECOLORS['white'])
+    #screen = pygame.transform.flip(screen, 180, 180)
     window.blit(screen, (5,5))
     window.blit(font.render('# of mines disarmed:'+str(deadMines),1,THECOLORS['black']),(420,5))
     window.blit(font.render('# of mines left: '+str(numMines),1,THECOLORS['black']),(420,25))
     window.blit(font.render('Distance to target:'+str(dist),1,THECOLORS['black']),(420,85))
-    window.blit(font.render('target Angle:'+str(ang),1,THECOLORS['black']),(420,105))
+    window.blit(font.render('target Angle:'+str(angC),1,THECOLORS['black']),(420,105))
     window.blit(font.render('Dist to nearest planet:'+str(nearPlanDist),1,THECOLORS['black']),(420,125))
     window.blit(font.render('Dif of cur ang and target ang:'+str(ang-shipAng),1,THECOLORS['black']),(420,145))
     window.blit(font.render('Future angle:'+str(int(GetAngle(pos,newPos))),1,THECOLORS['black']),(420,165))
@@ -398,7 +404,7 @@ while True:
 
     window.blit(font.render('# of players:'+str(len(playerDat)),1,THECOLORS['black']),(420,305))
     window.blit(font.render('TPS:'+str(int(clock.get_fps())),1,THECOLORS['black']),(420,325))
-    client.DropMine()
+    
     try:
         pygame.display.set_caption("T: %s M: %s C: %s"%(playerToTarget,playerDat[ourID]['name'],client.GetName(myMaster)))
     except:
